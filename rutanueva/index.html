@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rutas optimas</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <script>
+        $(document).ready(function() {
+            var coord = {
+                'Jilotepec': [19.953032045122768, -99.53269994155708],
+                'Toluca': [19.29745254534116, -99.65710681903944],
+                'Atlacomulco': [19.79878294899932, -99.87626121969151],
+                'Guadalajara': [20.666064996435196, -103.35533164256145],
+                'Monterrey': [25.702280705370654, -100.32997573668852],
+                'Cancun': [21.175778310245846, -86.80662399466596],
+                'Michoacan': [19.69961503329635, -101.19481450213483],
+                'Aguascalientes': [21.884450124362946, -102.29310472047736],
+                'CDMX': [19.43267930426511, -99.13367307426748],
+                'Queretaro': [20.596794350639435, -100.3873402154955],
+                'Almacen': [19.901773064454815, -99.34447206557506]
+            };
+
+            var pedidos = {
+                'Jilotepec': 10,
+                'Toluca': 15,
+                'Atlacomulco': 30,
+                'Guadalajara': 20,
+                'Monterrey': 40,
+                'Cancun': 50,
+                'Michoacan': 25,
+                'Aguascalientes': 45,
+                'CDMX': 60,
+                'Queretaro': 100,
+                'Almacen': 0
+            };
+
+            var max_carga = 150;
+
+            function mostrarRutasOptimas() {
+                $.ajax({
+                    type: "POST",
+                    url: "http://localhost:5000/ruta_optima",
+                    data: JSON.stringify({
+                        coord: coord,
+                        pedidos: pedidos,
+                        max_carga: max_carga
+                    }),
+                    success: function(response) {
+                        var rutasOptimas = response.map(function(ruta) {
+                            return "<li>" + ruta.join(" -> ") + "</li>";
+                        }).join("");
+                        $("#rutasOptimas").html("<ul>" + rutasOptimas + "</ul>");
+                    },
+                    error: function(xhr, status, error) {
+                        console.log(xhr.status + ": " + xhr.statusText);
+                    },
+                    dataType: "json",
+                    contentType: "application/json"
+                });
+            }
+
+            function agregarCoordenada() {
+                var nombre = $("#nombre_coordenada").val();
+                var latitud = parseFloat($("#latitud").val());
+                var longitud = parseFloat($("#longitud").val());
+
+                if (!isNaN(latitud) && !isNaN(longitud)) {
+                    coord[nombre] = [latitud, longitud];
+                    $("#nombre_coordenada").val("");
+                    $("#latitud").val("");
+                    $("#longitud").val("");
+                } else {
+                    alert("Por favor, ingresa valores numéricos válidos para la latitud y longitud.");
+                }
+            }
+
+            function agregarPedido() {
+                var nombre = $("#nombre_pedido").val();
+                var peso = parseInt($("#peso").val());
+
+                if (!isNaN(peso)) {
+                    pedidos[nombre] = peso;
+                    $("#nombre_pedido").val("");
+                    $("#peso").val("");
+                } else {
+                    alert("Por favor, ingresa un valor numérico válido para el peso del pedido.");
+                }
+            }
+
+            $("#btn_agregar_coordenada").click(function() {
+                agregarCoordenada();
+            });
+
+            $("#btn_agregar_pedido").click(function() {
+                agregarPedido();
+            });
+
+            $("#btn_mostrar_ruta_optima").click(function() {
+                mostrarRutasOptimas();
+            });
+            
+            $("#btn_agregar_ruta").click(function() {
+                var nombre = $("#nombre_ruta").val();
+                var ciudades = $("#ciudades_ruta").val().split(",");
+                var nuevaRuta = [];
+
+                for (var i = 0; i < ciudades.length; i++) {
+                    var ciudad = ciudades[i].trim();
+                    if (coord.hasOwnProperty(ciudad)) {
+                        nuevaRuta.push(ciudad);
+                    } else {
+                        alert("La ciudad '" + ciudad + "' no existe en las coordenadas.");
+                        return;
+                    }
+                }
+
+                pedidos[nombre] = 0;
+                coord[nombre] = coord[nuevaRuta[0]];
+                nuevaRuta.unshift(nombre);
+
+                mostrarRutasOptimas();
+            });
+
+            $("#btn_modificar_carga").click(function() {
+                var carga = parseInt($("#maxCarga").val());
+
+                if (!isNaN(carga)) {
+                    max_carga = carga;
+                    mostrarRutasOptimas();
+                } else {
+                    alert("Por favor, ingresa un valor numérico válido para la carga máxima.");
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container text-center">
+        <h1 class="mt-5">Ruta mas optima</h1>
+        <h2 class="mt-4 mb-4">Agregar nueva coordenada</h2>
+        <div class="input-group mb-3">
+            <span class="input-group-text" for="cuidad" id="addon-wrapping"><i class="bi bi-building"></i></span>
+            <input type="text" class="form-control" id="nombre_coordenada" placeholder="Cuidad" aria-label="Cuidad" aria-describedby="addon-wrapping">
+        </div>
+        <div class="input-group mb-3">
+            <span class="input-group-text" for="latitud" id="addon-wrapping"><i class="bi bi-pin-map-fill"></i></span>
+            <input type="text" class="form-control" id="latitud" placeholder="Latitud" aria-label="Latitud" aria-describedby="addon-wrapping">
+        </div>
+        <div class="input-group mb-3">
+            <span class="input-group-text" for="longitud" id="addon-wrapping"><i class="bi bi-pin-map"></i></span>
+            <input type="text" class="form-control" id="longitud" placeholder="Longitud" aria-label="Longitud" aria-describedby="addon-wrapping">
+        </div>
+        <button class="btn btn-primary mt-3" id="btn_agregar_coordenada">Colocar Coordenada</button>
+
+        <h2 class="mb-4 mt-4">Agregar nuevo pedido</h2>
+        <div class="input-group mb-3">
+            <span class="input-group-text" for="nombre_pedido" id="addon-wrapping"><i class="bi bi-building"></i></span>
+            <input type="text" class="form-control" id="nombre_pedido" placeholder="Cuidad" aria-label="Cuidad" aria-describedby="addon-wrapping">
+        </div>
+        <div class="input-group mb-3">
+            <span class="input-group-text" for="peso" id="addon-wrapping"><i class="bi bi-bag-fill"></i></span>
+            <input type="text" class="form-control" id="peso" placeholder="Pedido" aria-label="Pedido" aria-describedby="addon-wrapping">
+        </div>
+        <button class="btn btn-primary mt-3" id="btn_agregar_pedido">Realizar Pedido</button>
+        <br><br>
+
+        <h2 class="mt-4 mb-4">Modificar carga máxima</h2>
+        <div class="input-group mb-3">
+            <span class="input-group-text" for="maxCarga" id="addon-wrapping"><i class="bi bi-archive-fill"></i></span>
+            <input type="number" class="form-control" id="maxCarga" value="150" placeholder="Carga Máxima" aria-label="Carga Máxima" aria-describedby="addon-wrapping">
+        </div>
+        <button class="btn btn-primary mt-3" id="btn_modificar_carga">Modificar Carga</button>
+        <br><br>
+
+        <button class="btn btn-secondary" id="btn_mostrar_ruta_optima">Visualizar Rutas Óptimas</button>
+        <h2 class="mt-4">Rutas Óptimas:</h2>
+        <div id="rutasOptimas"></div>
+    </div>
+</body>
+</html>
